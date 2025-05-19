@@ -1,0 +1,16 @@
+**/__pycache__
+.idea/
+**/.DS_STORE
+**/log
+**/build
+**/dist
+**/*.egg-info
+**/.vscode
+**/_log
+**/misc
+*.so
+env/gobang/gobangboard.cpp
+env/tictactoe/tictactoeboard.cpp
+env/go/goboard.cpp
+/hw*
+/checkpoint/
