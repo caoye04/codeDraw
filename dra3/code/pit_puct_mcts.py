@@ -102,10 +102,14 @@ if __name__ == '__main__':
     
     MLP_net = MLPNet(env.observation_size, env.action_space_size, MLP_model_config, device=device)
     MLP_net = ModelTrainer(env.observation_size, env.action_space_size, MLP_net, ModelTrainingConfig())
-    MLP_net.load_checkpoint("checkpoint/mlp_7x7_3layers_exfeat_1", "best.pth.tar")
+    MLP_net.load_checkpoint("checkpoint/mlp", "best.pth.tar")
     MLP_puct_player = PUCTPlayer(MLP_mcts_config, MLP_net, deterministic=True)
     
-    
+    # # 首先检查ModelTrainer的属性
+    # print("\n====== MLPNet Trainer属性 ======")
+    # if hasattr(MLP_net, 'net'):
+    #     print("MLP_net.net:", MLP_net.net)
+   
     
     Mynet_mcts_config = PUCTMCTSConfig(
         n_search=240, 
@@ -113,15 +117,19 @@ if __name__ == '__main__':
         C=1.0,
     )
     Mynet_model_config = BaseNetConfig(
-        linear_hidden=[128, 128],
-        num_channels=32
+        linear_hidden=[256, 128],
+        num_channels=256
     )
     
     Mynet_net = MyNet(env.observation_size, env.action_space_size, Mynet_model_config, device=device)
     Mynet_net = ModelTrainer(env.observation_size, env.action_space_size, Mynet_net, ModelTrainingConfig())
     Mynet_net.load_checkpoint("checkpoint/mynet", "best.pth.tar")
     Mynet_puct_player = PUCTPlayer(Mynet_mcts_config, Mynet_net, deterministic=True)
-    
+
+    # print("\n====== MLPNet Trainer属性 ======")
+    # if hasattr(MLP_net, 'net'):
+    #     print("MLP_net.net:", MLP_net.net)
+
     player1_name = "MLP_net"
     player1 = MLP_puct_player
     player2_name = "My_net"

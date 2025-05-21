@@ -115,7 +115,7 @@ def execute_episode_worker(
                 command, args = conn.recv()
                 
                 if command == 'close':
-                    
+                    conn.close()
                     return
                 
                 if command == 'run':
@@ -130,27 +130,34 @@ def execute_episode_worker(
                         state = env.reset()
                         config = copy.copy(mcts_config)
                         mcts = puct_mcts.PUCTMCTS(env, net, config)
-                        episode_step = 0
                         train_examples = []
                         
                         while True:
                             player = env.current_player
-                            # MCTS self-play
-                            ########################
-                            # TODO: your code here #
-                            policy = None # compute policy with mcts
+                            policy = mcts.search()
                             
-                            symmetries = get_symmetries(state, policy) # rotate&flip the data&policy
+                            symmetries = get_symmetries(state, policy)  
                             train_examples += [(x[0], x[1], player) for x in symmetries]
+                            action = np.argmax(policy)  
                             
-                            pass # choose a action accroding to policy
-                            done = False # apply the action to env
+                            state, reward, done = env.step(action)
+                            
                             if done:
-                                pass # record all data
-                                # tips: use env.compute_canonical_form_obs to transform the observation into BLACK's perspective
+                                player = env.current_player
+                                reward = reward * player  # reward是针对于上一个执棋者而言的reward，这里是转换为针对白方而言的reward
+                                result = []
+                                for x in train_examples:
+                                    canonical_state = env.compute_canonical_form_obs(x[0], x[2])
+                                    final_reward = reward if x[2] == 1 else -reward # 和obs的视角对应起来
+                                    result.append((canonical_state, x[1], final_reward))
+
+                                all_examples += result
+                                all_episode_len.append(len(train_examples))
+                                result_counter.add(final_reward,1)
+                                break
                             
-                            pass # update mcts (you can use get_subtree())
-                            ########################
+                            mcts = mcts.get_subtree(action)
+                            
                     logger.debug(f"[Worker {id}] Finished {int(args)} episodes (length={all_episode_len}) in {time.time()-st0:.3f}s, {result_counter}")
                     conn.send((all_examples, result_counter))
                     
@@ -429,7 +436,7 @@ if __name__ == "__main__":
         n_search=240, 
         temperature=1.0, 
         C=1.0,
-        checkpoint_path="checkpoint/mlp_7x7_3layers_exfeat_1"
+        checkpoint_path="checkpoint/task2_2_7x7_3layers_exfeat_1"
     )
     model_training_config = ModelTrainingConfig(
         epochs=10,
@@ -465,6 +472,7 @@ if __name__ == "__main__":
     assert config.n_match_update % 2 == 0
     assert config.n_match_eval % 2 == 0
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f"Using device:{device}")
     
     # env = GoGame(7, obs_mode="extra_feature") # "extra_feature" only compatible with NumpyLinearModel, LinearModel, MLPNet
     env = GoGame(7)
@@ -479,8 +487,8 @@ if __name__ == "__main__":
     
     def net_builder(device=device):
         # Deep Neural Network
-        # net = MyNet(env.observation_size, env.action_space_size, model_config, device=device)
-        net = MLPNet(env.observation_size, env.action_space_size, model_config, device=device)
+        net = MyNet(env.observation_size, env.action_space_size, model_config, device=device)
+        # net = MLPNet(env.observation_size, env.action_space_size, model_config, device=device)
         net = ModelTrainer(env.observation_size, env.action_space_size, net, model_training_config)
         
         # Numpy Linear Model

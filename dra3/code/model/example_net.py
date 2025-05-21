@@ -11,7 +11,7 @@ class BaseNetConfig:
         self, 
         num_channels:int = 256,
         dropout:float = 0.3,
-        linear_hidden:list[int] = [256, 128],
+        linear_hidden:list[int] = [64, 32],
     ):
         self.num_channels = num_channels
         self.linear_hidden = linear_hidden
@@ -60,19 +60,74 @@ class LinearModel(nn.Module):
         pi = self.l_pi(s)
         v = self.l_v(s)
         return F.log_softmax(pi, dim=1), torch.tanh(v)
-    
+
 class MyNet(nn.Module):
-    def __init__(self, observation_size:tuple[int, int], action_space_size:int, config:BaseNetConfig, device:torch.device='cpu'):
+    def __init__(self, observation_size: tuple[int, int], action_space_size: int,
+                 config: BaseNetConfig, device: torch.device = 'cpu') -> None:
         super().__init__()
+        
         self.config = config
         self.device = device
+        
+        # 构建卷积网络层
+        channels = config.num_channels
+        self.conv_stack = nn.ModuleList([
+            nn.Conv2d(1, channels, 3, padding=1),
+            nn.Conv2d(channels, channels, 3, padding=1),
+            nn.Conv2d(channels, channels, 3, padding=1)
+        ])
+        
+        # 用于残差连接的直通路径
+        self.identity_path = nn.Conv2d(1, channels, kernel_size=1)
+        
+        # 计算展平后的特征大小
+        flatten_size = observation_size[0] * observation_size[1] * channels
+        
+        # 构建全连接层
+        hidden_sizes = config.linear_hidden
+        self.dense_layers = nn.ModuleList([
+            nn.Linear(flatten_size, hidden_sizes[0]),
+            nn.Linear(hidden_sizes[0], hidden_sizes[1])
+        ])
+        
+        # 输出层
+        self.policy_output = nn.Linear(hidden_sizes[1], action_space_size)
+        self.value_output = nn.Linear(hidden_sizes[1], 1)
+        
+        # 防过拟合层
+        self.regularization = nn.Dropout(config.dropout)
+        
+        # 将模型移至指定设备
         self.to(device)
-        ########################
-        # TODO: your code here #
-        ########################
     
-    def forward(self, s: torch.Tensor):
-        ########################
-        # TODO: your code here #
-        return None, None
-        ########################
+    def forward(self, state_input):
+        # 增加通道维度
+        x = state_input.unsqueeze(1)
+        
+        # 保存残差路径
+        skip_connection = self.identity_path(x)
+        
+        # 卷积层处理
+        conv1_out = F.relu(self.conv_stack[0](x))
+        conv2_out = F.relu(self.conv_stack[1](conv1_out))
+        conv3_out = self.conv_stack[2](conv2_out)
+        
+        # 残差合并
+        merged_features = F.relu(conv3_out + skip_connection)
+        
+        # 特征展平
+        batch_size = merged_features.size(0)
+        flattened = merged_features.reshape(batch_size, -1)
+        
+        # 全连接层处理
+        fc1_out = F.relu(self.dense_layers[0](flattened))
+        fc1_regularized = self.regularization(fc1_out)
+        fc2_out = F.relu(self.dense_layers[1](fc1_regularized))
+        fc2_regularized = self.regularization(fc2_out)
+        
+        # 输出头
+        policy_logits = self.policy_output(fc2_regularized)
+        value_pred = self.value_output(fc2_regularized)
+        
+        # 返回策略分布和状态评估
+        return F.log_softmax(policy_logits, dim=1), torch.tanh(value_pred)
