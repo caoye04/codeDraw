@@ -1,6 +1,0 @@
-numpy
-typing
-tqdm
-cython
-matplotlib
-dill
