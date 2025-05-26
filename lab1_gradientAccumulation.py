@@ -123,9 +123,22 @@ accum_steps, accum_train_losses, accum_val_losses = parse_experiment_data(accum_
 def plot_gradient_accumulation_comparison(naive_steps, naive_train_losses, naive_val_losses,
                                          accum_steps, accum_train_losses, accum_val_losses):
     # 创建图表
-    plt.figure(figsize=(12, 8), facecolor='white')
+    plt.figure(figsize=(14, 7), facecolor='white')
     ax = plt.gca()
     ax.set_facecolor('white')
+    
+    # 计算损失下降曲线的稳定性（标准差）
+    naive_train_std = np.std(naive_train_losses[5:]) 
+    naive_val_std = np.std(naive_val_losses[5:])
+    accum_train_std = np.std(accum_train_losses[5:])
+    accum_val_std = np.std(accum_val_losses[5:])
+    
+    if naive_train_std > accum_train_std:
+        stability_improvement = (1 - accum_train_std/naive_train_std) * 100
+        stability_text = f"稳定性提升: {stability_improvement:.2f}%"
+    else:
+        stability_change = (accum_train_std/naive_train_std - 1) * 100
+        stability_text = f"稳定性变化: {stability_change:.2f}%"
     
     # 绘制四条曲线
     # 无梯度累积-训练损失
@@ -172,6 +185,22 @@ def plot_gradient_accumulation_comparison(naive_steps, naive_train_losses, naive
              markeredgecolor='#2E8B57',
              markevery=5)
     
+    # 添加初始和最终损失的水平虚线
+    # 初始损失（两者相同）
+    plt.axhline(y=naive_val_losses[0], color='gray', linestyle='--', alpha=0.7)
+    plt.text(1800, naive_val_losses[0]+0.1, f'初始损失: {naive_val_losses[0]:.2f}', 
+             color='gray', fontsize=10, ha='left', va='bottom')
+    
+    # 最终无梯度累积验证损失
+    plt.axhline(y=naive_val_losses[-1], color='#4169E1', linestyle='--', alpha=0.7)
+    plt.text(1700, naive_val_losses[-1]+0.1, f'无梯度累积最终验证损失: {naive_val_losses[-1]:.2f}', 
+             color='#4169E1', fontsize=10, ha='left', va='bottom')
+    
+    # 最终梯度累积验证损失
+    plt.axhline(y=accum_val_losses[-1], color='#2E8B57', linestyle='--', alpha=0.7)
+    plt.text(1700, accum_val_losses[-1]-0.4, f'梯度累积最终验证损失: {accum_val_losses[-1]:.2f}', 
+             color='#2E8B57', fontsize=10, ha='left', va='bottom')
+    
     # 设置标题和标签
     plt.title('梯度累积对GPT语言模型训练的影响',
               fontsize=16, 
@@ -180,47 +209,36 @@ def plot_gradient_accumulation_comparison(naive_steps, naive_train_losses, naive
     plt.xlabel('训练步数', fontsize=12)
     plt.ylabel('损失值', fontsize=12)
     
-    # 添加图例
-    plt.legend(loc='upper right', fontsize=10)
+    # 添加图例在左上角
+    plt.legend(loc='upper left', fontsize=10)
     
     # 设置网格
     plt.grid(True, linestyle='--', alpha=0.2)
-    
-    # 在右下角添加统计信息
-    min_naive_val = min(naive_val_losses)
-    min_accum_val = min(accum_val_losses)
-    
-    info_text = (f'无梯度累积:\n'
-                f'  初始验证损失: {naive_val_losses[0]:.2f}\n'
-                f'  最低验证损失: {min_naive_val:.2f}\n'
-                f'  最终验证损失: {naive_val_losses[-1]:.2f}\n\n'
-                f'梯度累积:\n'
-                f'  初始验证损失: {accum_val_losses[0]:.2f}\n'
-                f'  最低验证损失: {min_accum_val:.2f}\n'
-                f'  最终验证损失: {accum_val_losses[-1]:.2f}')
-    
-    plt.text(0.02, 0.02, info_text,
-             transform=ax.transAxes,
-             bbox=dict(facecolor='white', alpha=0.8, edgecolor='gray'),
-             fontsize=10)
-    
-    # 在右下角添加参数信息
+
+    # 在右侧中央添加参数信息
     param_text = ('实验参数设置:\n'
                  'n_layer=4, n_head=4, n_embd=256\n'
                  'batch_size=8, block_size=128\n'
                  'learning_rate=6e-4\n'
                  'eval_interval=50, eval_iters=50\n\n'
                  '无梯度累积: gradient_accumulation_steps=1\n'
-                 '梯度累积: gradient_accumulation_steps=8')
+                 '梯度累积: gradient_accumulation_steps=8\n\n'
+                 '训练曲线稳定性(第5个点之后):\n'
+                 f'无梯度累积训练标准差: {naive_train_std:.4f}\n'
+                 f'梯度累积训练标准差: {accum_train_std:.4f}\n'
+                 f'{stability_text}'
+                 )
     
-    plt.text(0.65, 0.02, param_text,
+    plt.text(0.75, 0.25, param_text,
              transform=ax.transAxes,
              bbox=dict(facecolor='white', alpha=0.8, edgecolor='gray'),
-             fontsize=10)
+             fontsize=10,
+             color="#666666",
+             )
     
-    # 设置坐标轴范围
+    # 设置坐标轴范围，扩展x轴以容纳文本
     plt.xlim(-50, 2050)
-    plt.ylim(4.5, 14)  
+    plt.ylim(4, 14)  
     
     # 设置x轴刻度
     plt.xticks(range(0, 2001, 200))
@@ -252,16 +270,16 @@ def plot_gradient_accumulation_comparison(naive_steps, naive_train_losses, naive
     print(f"训练损失差异: {naive_train_losses[-1] - accum_train_losses[-1]:.4f}")
     print(f"验证损失差异: {naive_val_losses[-1] - accum_val_losses[-1]:.4f}")
 
-    # 计算损失下降曲线的稳定性（标准差）
-    naive_train_std = np.std(naive_train_losses[5:])  # 跳过前5个点，避免初始剧烈变化的影响
-    accum_train_std = np.std(accum_train_losses[5:])
     print(f"\n训练曲线稳定性 (标准差):")
-    print(f"无梯度累积标准差: {naive_train_std:.4f}")
-    print(f"梯度累积标准差: {accum_train_std:.4f}")
+    print(f"无梯度累积训练标准差: {naive_train_std:.4f}")
+    print(f"梯度累积训练标准差: {accum_train_std:.4f}")
+    print(f"无梯度累积验证标准差: {naive_val_std:.4f}")
+    print(f"梯度累积验证标准差: {accum_val_std:.4f}")
+    
     if naive_train_std > accum_train_std:
-        print(f"稳定性提升: {(1 - accum_train_std/naive_train_std)*100:.2f}%")
+        print(f"训练稳定性提升: {(1 - accum_train_std/naive_train_std)*100:.2f}%")
     else:
-        print(f"稳定性变化: {(accum_train_std/naive_train_std - 1)*100:.2f}%")
+        print(f"训练稳定性变化: {(accum_train_std/naive_train_std - 1)*100:.2f}%")
 
 # 调用绘图函数
 plot_gradient_accumulation_comparison(naive_steps, naive_train_losses, naive_val_losses,
