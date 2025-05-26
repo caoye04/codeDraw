@@ -245,11 +245,11 @@ rope_steps, rope_train_losses, rope_val_losses = parse_experiment_data(rope_posi
 # 方法：使用分段坐标轴展示位置编码对比
 def plot_position_encoding_comparison_with_broken_axis():
     # 创建带有分段坐标轴的图表
-    fig = plt.figure(figsize=(14, 10), facecolor='white')
+    fig = plt.figure(figsize=(16, 12), facecolor='white')
     
-    # 创建两个子图，一个显示4-11区间，一个显示3.4-4.5区间
-    ax1 = plt.subplot(2, 1, 1)  # 上面的子图 (4-11) - 主要训练阶段
-    ax2 = plt.subplot(2, 1, 2)  # 下面的子图 (3.4-4.5) - 细节区域
+    # 创建两个子图，保持原有的显示区间
+    ax1 = plt.subplot(2, 1, 1)  # 上面的子图 (4.5-11)
+    ax2 = plt.subplot(2, 1, 2)  # 下面的子图 (3.4-4.5)
     
     # 计算性能指标
     final_train_improvement = (naive_train_losses[-1] - rope_train_losses[-1])
@@ -257,199 +257,148 @@ def plot_position_encoding_comparison_with_broken_axis():
     train_improvement_pct = (final_train_improvement / naive_train_losses[-1]) * 100
     val_improvement_pct = (final_val_improvement / naive_val_losses[-1]) * 100
     
-    # 在上半部分绘制曲线 (4-11区间)
+    # 优化配色方案
+    colors = {
+        'naive_train': '#E74C3C',  # 红色
+        'naive_val': '#C0392B',    # 深红色
+        'rope_train': '#3498DB',   # 蓝色
+        'rope_val': '#2980B9',     # 深蓝色
+        'grid': '#CCCCCC',         # 网格线颜色
+        'annotation': '#666666'    # 注释文字颜色
+    }
+    
+    # 在上半部分绘制曲线 (4.5-11区间)
     # 标准位置编码-训练损失
-    ax1.plot(naive_steps, naive_train_losses,
-             color='#E74C3C',  # 红色
+    l1 = ax1.plot(naive_steps, naive_train_losses,
+             color=colors['naive_train'],
              label='标准位置编码-训练损失',
-             linewidth=2,
+             linewidth=2.5,
              marker='o',
-             markersize=3,
-             markerfacecolor='#E74C3C',
-             markeredgecolor='#E74C3C',
+             markersize=4,
+             markerfacecolor=colors['naive_train'],
+             markeredgecolor=colors['naive_train'],
              markevery=10)
+    
     
     # 标准位置编码-验证损失
-    ax1.plot(naive_steps, naive_val_losses,
-             color='#C0392B',  # 深红色
+    l2 = ax1.plot(naive_steps, naive_val_losses,
+             color=colors['naive_val'],
              label='标准位置编码-验证损失',
-             linewidth=2,
+             linewidth=2.5,
              marker='s',
-             markersize=3,
-             markerfacecolor='#C0392B',
-             markeredgecolor='#C0392B',
+             markersize=4,
+             markerfacecolor=colors['naive_val'],
+             markeredgecolor=colors['naive_val'],
              markevery=10)
+    
     
     # RoPE位置编码-训练损失
-    ax1.plot(rope_steps, rope_train_losses,
-             color='#3498DB',  # 蓝色
+    l3 = ax1.plot(rope_steps, rope_train_losses,
+             color=colors['rope_train'],
              label='RoPE位置编码-训练损失',
-             linewidth=2,
+             linewidth=2.5,
              marker='^',
-             markersize=3,
-             markerfacecolor='#3498DB',
-             markeredgecolor='#3498DB',
+             markersize=4,
+             markerfacecolor=colors['rope_train'],
+             markeredgecolor=colors['rope_train'],
              markevery=10)
     
+    
     # RoPE位置编码-验证损失
-    ax1.plot(rope_steps, rope_val_losses,
-             color='#2980B9',  # 深蓝色
+    l4 = ax1.plot(rope_steps, rope_val_losses,
+             color=colors['rope_val'],
              label='RoPE位置编码-验证损失',
-             linewidth=2,
+             linewidth=2.5,
              marker='d',
-             markersize=3,
-             markerfacecolor='#2980B9',
-             markeredgecolor='#2980B9',
+             markersize=4,
+             markerfacecolor=colors['rope_val'],
+             markeredgecolor=colors['rope_val'],
              markevery=10)
+    
     
     # 在下半部分绘制相同的曲线 (3.4-4.5区间)
-    # 标准位置编码-训练损失
-    ax2.plot(naive_steps, naive_train_losses,
-             color='#E74C3C',  # 红色
-             linewidth=2,
-             marker='o',
-             markersize=3,
-             markerfacecolor='#E74C3C',
-             markeredgecolor='#E74C3C',
-             markevery=10)
+    for curve in [l1, l2, l3, l4]:
+        ax2.plot(curve[0].get_xdata(), 
+                curve[0].get_ydata(),
+                color=curve[0].get_color(),
+                linewidth=2.5,
+                marker=curve[0].get_marker(),
+                markersize=4,
+                markerfacecolor=curve[0].get_markerfacecolor(),
+                markeredgecolor=curve[0].get_markeredgecolor(),
+                markevery=10)
+        
+
     
-    # 标准位置编码-验证损失
-    ax2.plot(naive_steps, naive_val_losses,
-             color='#C0392B',  # 深红色
-             linewidth=2,
-             marker='s',
-             markersize=3,
-             markerfacecolor='#C0392B',
-             markeredgecolor='#C0392B',
-             markevery=10)
-    
-    # RoPE位置编码-训练损失
-    ax2.plot(rope_steps, rope_train_losses,
-             color='#3498DB',  # 蓝色
-             linewidth=2,
-             marker='^',
-             markersize=3,
-             markerfacecolor='#3498DB',
-             markeredgecolor='#3498DB',
-             markevery=10)
-    
-    # RoPE位置编码-验证损失
-    ax2.plot(rope_steps, rope_val_losses,
-             color='#2980B9',  # 深蓝色
-             linewidth=2,
-             marker='d',
-             markersize=3,
-             markerfacecolor='#2980B9',
-             markeredgecolor='#2980B9',
-             markevery=10)
-    
-    # 设置坐标轴范围 - 修改为4-11和3.4-4.5
-    ax1.set_ylim(4.5, 11)       # 上半部分显示4-11区间
-    ax2.set_ylim(3.4, 4.5)    # 下半部分显示3.4-4.5区间（更大的比例尺）
-    
-    # 两个子图都设置相同的x轴范围
+    # 设置坐标轴范围
+    ax1.set_ylim(4.5, 11)
+    ax2.set_ylim(3.4, 4.5)
     ax1.set_xlim(-100, 5100)
     ax2.set_xlim(-100, 5100)
     
+    # 添加网格线
+    ax1.grid(True, linestyle='--', alpha=0.2, color=colors['grid'])
+    ax2.grid(True, linestyle='--', alpha=0.2, color=colors['grid'])
+    
     # 添加初始损失参考线
     ax1.axhline(y=naive_val_losses[0], color='gray', linestyle='--', alpha=0.7)
-    ax1.text(3500, naive_val_losses[0]-0.1, f'初始损失: {naive_val_losses[0]:.2f}', 
-             color='gray', fontsize=10, ha='left', va='top')
+    ax1.text(3500, naive_val_losses[0]-0.1, 
+             f'初始损失: {naive_val_losses[0]:.2f}', 
+             color='gray', 
+             fontsize=10,
+             ha='left',
+             va='top')
     
     # 在下图添加最终损失参考线
-    ax2.axhline(y=naive_val_losses[-1], color='#C0392B', linestyle='--', alpha=0.7)
-    ax2.text(4200, naive_val_losses[-1]+0.03, f'标准位置编码最终验证损失: {naive_val_losses[-1]:.2f}', 
-             color='#C0392B', fontsize=10, ha='left', va='bottom')
+    ax2.axhline(y=naive_val_losses[-1], color=colors['naive_val'], linestyle='--', alpha=0.7)
+    ax2.text(4200, naive_val_losses[-1]+0.1, 
+             f'标准位置编码最终验证损失: {naive_val_losses[-1]:.2f}', 
+             color=colors['naive_val'],
+             fontsize=12,
+             ha='left',
+             va='bottom')
     
-    ax2.axhline(y=rope_val_losses[-1], color='#2980B9', linestyle='--', alpha=0.7)
-    ax2.text(4200, rope_val_losses[-1]+0.03, f'RoPE位置编码最终验证损失: {rope_val_losses[-1]:.2f}', 
-             color='#2980B9', fontsize=10, ha='left', va='bottom')
-    
-    # 标记500步时的差异
-    step_500_idx = naive_steps.index(500)
-    diff_500 = naive_val_losses[step_500_idx] - rope_val_losses[step_500_idx]
-    mid_point = (naive_val_losses[step_500_idx] + rope_val_losses[step_500_idx]) / 2
-    
-    # 在上图添加比较箭头（500步处的差异）
-    ax1.annotate('', 
-                xy=(500, rope_val_losses[step_500_idx]),
-                xytext=(500, naive_val_losses[step_500_idx]),
-                arrowprops=dict(arrowstyle='<->', color='black', lw=1.5))
-    ax1.text(520, mid_point, f'步数500差异: {diff_500:.4f}',
-             fontsize=9, ha='left', va='center')
-    
-    # 标记5000步时的差异
-    step_5000_idx = naive_steps.index(5000)
-    diff_5000 = naive_val_losses[step_5000_idx] - rope_val_losses[step_5000_idx]
-    mid_point_5000 = (naive_val_losses[step_5000_idx] + rope_val_losses[step_5000_idx]) / 2
-    
-    # 添加5000步处的差异箭头 (这在下图中)
-    ax2.annotate('', 
-                xy=(5000, rope_val_losses[step_5000_idx]),
-                xytext=(5000, naive_val_losses[step_5000_idx]),
-                arrowprops=dict(arrowstyle='<->', color='black', lw=1.5))
-    ax2.text(4800, mid_point_5000, f'步数5000差异: {diff_5000:.4f}',
-             fontsize=9, ha='right', va='center')
+    ax2.axhline(y=rope_val_losses[-1], color=colors['rope_val'], linestyle='--', alpha=0.7)
+    ax2.text(4200, rope_val_losses[-1]-0.08, 
+             f'RoPE位置编码最终验证损失: {rope_val_losses[-1]:.2f}', 
+             color=colors['rope_val'],
+             fontsize=12,
+             ha='left',
+             va='bottom')
     
     # 添加标题和轴标签
-    fig.suptitle('RoPE位置编码与标准位置编码在GPT训练中的对比', fontsize=16, y=0.98)
+    fig.suptitle('RoPE位置编码与标准位置编码在GPT训练中的对比', 
+                 fontsize=16, 
+                 y=0.98)
     ax2.set_xlabel('训练步数', fontsize=12)
     ax1.set_ylabel('损失值', fontsize=12)
     ax2.set_ylabel('损失值', fontsize=12)
     
     # 在上图显示图例
-    ax1.legend(loc='upper right', bbox_to_anchor=(0.999, 0.96), fontsize=10)
+    ax1.legend(loc='upper right', 
+              bbox_to_anchor=(0.999, 0.96), 
+              fontsize=10,
+              frameon=True,
+              fancybox=True,
+              shadow=True)
     
     # 设置x轴刻度
     ax1.set_xticks(range(0, 5001, 500))
     ax2.set_xticks(range(0, 5001, 500))
-    
-    # 只在下图显示x轴标签
     ax1.set_xticklabels([])
     
     # 使用不同的刻度密度
     ax1.yaxis.set_major_locator(MultipleLocator(1.0))
-    ax2.yaxis.set_major_locator(MultipleLocator(0.2))  # 下部分用更精细的刻度
-    
-    # 设置网格线
-    ax1.grid(True, linestyle='--', alpha=0.2)
-    ax2.grid(True, linestyle='--', alpha=0.2)
+    ax2.yaxis.set_major_locator(MultipleLocator(0.2))
     
     # 添加断轴标记
-    d = .005  # 断轴线的大小
+    d = .005
     kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
-    ax1.plot((-d, +d), (-d, +d), **kwargs)        # 左下
-    ax1.plot((1 - d, 1 + d), (-d, +d), **kwargs)  # 右下
-    
+    ax1.plot((-d, +d), (-d, +d), **kwargs)
+    ax1.plot((1 - d, 1 + d), (-d, +d), **kwargs)
     kwargs.update(transform=ax2.transAxes)
-    ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # 左上
-    ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # 右上
-    
-    # 添加性能参数信息
-    param_text = ('实验参数设置:\n'
-                 'n_layer=8, n_head=8, n_embd=512\n'
-                 'batch_size=8, block_size=256\n'
-                 'gradient_accumulation_steps=8\n'
-                 'max_iters=5000\n\n'
-                 '位置编码对比:\n'
-                 '标准位置编码使用可学习的嵌入层\n'
-                 'RoPE使用旋转位置编码\n\n'
-                 '模型性能对比:\n'
-                 f'标准位置编码最终训练损失: {naive_train_losses[-1]:.4f}\n'
-                 f'RoPE位置编码最终训练损失: {rope_train_losses[-1]:.4f}\n'
-                 f'训练损失提升: {final_train_improvement:.4f} ({train_improvement_pct:.2f}%)\n\n'
-                 f'标准位置编码最终验证损失: {naive_val_losses[-1]:.4f}\n'
-                 f'RoPE位置编码最终验证损失: {rope_val_losses[-1]:.4f}\n'
-                 f'验证损失提升: {final_val_improvement:.4f} ({val_improvement_pct:.2f}%)'
-                 )
-    
-    # 在图的右侧添加性能信息
-    ax1.text(0.81, 1.25, param_text,
-             transform=ax2.transAxes,
-             bbox=dict(facecolor='white', alpha=0.8, edgecolor='gray'),
-             fontsize=10,
-             color="#666666",
-             )
+    ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)
+    ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)
     
     # 添加RoPE架构示意
     rope_text = ('RoPE位置编码原理:\n'
@@ -458,10 +407,14 @@ def plot_position_encoding_comparison_with_broken_axis():
                 '使相对位置信息被编码进向量中\n'
                 '有利于处理长序列')
     
-    ax1.text(0.02, 0.3, rope_text,
+    ax1.text(0.1, 0.4, rope_text,
              transform=ax1.transAxes,
-             bbox=dict(facecolor='#E3F2FD', alpha=0.8, edgecolor='#2980B9', boxstyle='round,pad=0.5'),
-             fontsize=9)
+             bbox=dict(facecolor='#E3F2FD', 
+                      alpha=0.8, 
+                      edgecolor=colors['rope_train'], 
+                      boxstyle='round,pad=0.5'),
+             fontsize=12,
+             color=colors['annotation'])
     
     # 找出每个模型的最低验证损失
     min_naive_val = min(naive_val_losses)
@@ -469,24 +422,41 @@ def plot_position_encoding_comparison_with_broken_axis():
     min_naive_idx = naive_val_losses.index(min_naive_val)
     min_rope_idx = rope_val_losses.index(min_rope_val)
     
-    # 在下图中标记最低验证损失点（如果它们在显示范围内）
-    if 3.4 <= min_naive_val <= 4.5:
-        ax2.plot(naive_steps[min_naive_idx], min_naive_val, 'o', 
-                markersize=8, markerfacecolor='white', markeredgecolor='#C0392B', markeredgewidth=2)
-        ax2.text(naive_steps[min_naive_idx]-200, min_naive_val-0.05, 
-                f'最低值: {min_naive_val:.4f}\n步数: {naive_steps[min_naive_idx]}',
-                fontsize=9, ha='right', va='top', color='#C0392B')
+    # 计算收敛速度
+    threshold_val = naive_val_losses[-1]
+    for idx, val_loss in enumerate(rope_val_losses):
+        if val_loss <= threshold_val:
+            steps_to_threshold = rope_steps[idx]
+            speedup = ((5000 - steps_to_threshold) / 5000) * 100
+            break
+            
+    # 添加性能参数信息
+    param_text = (
+        '实验参数设置:\n'
+        'n_layer=8, n_head=8, n_embd=512\n'
+        'batch_size=8, block_size=256\n'
+        'gradient_accumulation_steps=8\n'
+        'max_iters=5000\n\n'
+        '位置编码对比:\n'
+        '标准位置编码使用可学习的嵌入层\n'
+        'RoPE使用旋转位置编码\n\n'
+        f'收敛速度分析:\n'
+        f'RoPE在第{steps_to_threshold}步达到naive的最终性能\n'
+        f'收敛速度提升约{speedup:.1f}%'
+    )
     
-    if 3.4 <= min_rope_val <= 4.5:
-        ax2.plot(rope_steps[min_rope_idx], min_rope_val, 'o', 
-                markersize=8, markerfacecolor='white', markeredgecolor='#2980B9', markeredgewidth=2)
-        ax2.text(rope_steps[min_rope_idx]+100, min_rope_val-0.05, 
-                f'最低值: {min_rope_val:.4f}\n步数: {rope_steps[min_rope_idx]}',
-                fontsize=9, ha='left', va='top', color='#2980B9')
+    # 在图的右侧添加性能信息
+    ax1.text(0.83, 1.35, param_text,
+             transform=ax2.transAxes,
+             bbox=dict(facecolor='white', 
+                      alpha=0.8, 
+                      edgecolor='gray'),
+             fontsize=10,
+             color=colors['annotation'])
     
     # 优化图表布局
     plt.tight_layout()
-    plt.subplots_adjust(hspace=0.04)  # 减少两个子图之间的间距
+    plt.subplots_adjust(hspace=0.04)
     
     # 保存图片
     plt.savefig('position_encoding_comparison_broken_axis.png', 
@@ -511,18 +481,10 @@ def plot_position_encoding_comparison_with_broken_axis():
     print("\n性能提升:")
     print(f"训练损失绝对提升: {final_train_improvement:.4f} ({train_improvement_pct:.2f}%)")
     print(f"验证损失绝对提升: {final_val_improvement:.4f} ({val_improvement_pct:.2f}%)")
-    
-    # 计算收敛速度
-    threshold_val = naive_val_losses[-1]  # 使用标准位置编码的最终验证损失作为阈值
-    
-    for idx, val_loss in enumerate(rope_val_losses):
-        if val_loss <= threshold_val:
-            steps_to_threshold = rope_steps[idx]
-            speedup = ((5000 - steps_to_threshold) / 5000) * 100
-            print(f"\n收敛速度分析:")
-            print(f"RoPE在第{steps_to_threshold}步达到标准位置编码的最终性能")
-            print(f"收敛速度提升约{speedup:.1f}%")
-            break
+    print(f"\n收敛速度分析:")
+    print(f"RoPE在第{steps_to_threshold}步达到标准位置编码的最终性能")
+    print(f"收敛速度提升约{speedup:.1f}%")
+
 
 # 调用绘图函数
 plot_position_encoding_comparison_with_broken_axis()
